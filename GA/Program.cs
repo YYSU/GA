@@ -10,6 +10,7 @@ namespace GA
     {
         static void Main(string[] args)
         {
+            Console.Read();
         }
     }
 }
