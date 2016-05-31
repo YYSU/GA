@@ -11,14 +11,18 @@ namespace GA
         public GA(int size,String Key) {
             this.key = Key;
             PopulationSize = new String[size];
+            NewPopulation = new String[size];
             randomPopulation(value, PopulationSize);
         }
         //金鑰
         String key;
         public Random value = new Random();
         public String[] PopulationSize;
+        public String[] NewPopulation;
         //parent
         String[] chromosome = new String[2];
+        public String NewChromosome;
+        
         public void randomPopulation(Random value, String[] PopulationSize) {
             for (int i = 0; i < PopulationSize.Length; i++) {
                 //隨機產生值
@@ -40,10 +44,8 @@ namespace GA
         static int fitness(String Key, String str)
         {
             int sum = 0;
-            for (int i = 0; i < str.Length; i++)
-            {
-                if (Key[i] == str[i])
-                {
+            for (int i = 0; i < str.Length; i++){
+                if (Key[i] == str[i]){
                     sum++;
                 }
             }
@@ -53,8 +55,9 @@ namespace GA
         public void Tournament() {
             Console.WriteLine("{0}   {1}", chromosome[0], chromosome[1]);
         }
+
         //輪盤法
-        public String[] Roulette_Wheel() {
+        public void Roulette_Wheel() {
             //0 ~ 16
             bool[] fitness_array = new bool[17];
             int Total = 0;
@@ -74,7 +77,7 @@ namespace GA
                     Total += i;
                 }
             }
-            int[] parent ={value.Next(0, Total + 1), value.Next(0, Total + 1)};
+            int[] parent = {value.Next(0, Total + 1), value.Next(0, Total + 1)};
             for(int i = 0; i < 2; i++) {
                 int wherefitness = 0;
                 for(int j = 0; j < arraylist.Count; j++) {
@@ -95,9 +98,52 @@ namespace GA
                 }
             }
             //Console.WriteLine("{0}   {1}", chromosome[0], chromosome[1]);
-            return chromosome;
+            
+        }
+        //交配法
+        public void One_Point(double PC) {
+            for (int i = 0; i < PopulationSize.Length; i++) {            
+                int random = value.Next(0, 16);
+                String front = chromosome[0].Substring(0, random);
+                String back = chromosome[1].Substring(random);
+                NewChromosome = front + back;
+                int Probability = value.Next(0, 1);
+                if (Probability < PC) {
+                    //突變
+                    NewChromosome = Mutate(NewChromosome);
+                }
+                NewPopulation[i] = NewChromosome;
+            }
+        }
+        //突變
+        public String Mutate(String Chromosome) {
+            int random = value.Next(0, 16);
+            if (Chromosome[random] == '0') {
+                String fron = Chromosome.Substring(0, random);
+                String bac = Chromosome.Substring(random + 1);
+                Chromosome = fron + 1 + bac;
+            } else {
+                String fron = Chromosome.Substring(0, random);
+                String bac = Chromosome.Substring(random + 1);
+                Chromosome = fron + 0 + bac;
+            }
+            return Chromosome;
         }
 
+        //把新人口傳回PopulationSzie
+        public void Translate() {
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                PopulationSize[i] = NewPopulation[i];
+            }
+        }
+
+        //印出 每個的字串 及 適合度 
+        public void Print() {
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                Console.WriteLine("第{0}個 : {1}  , Fitness:{2}", i+1, PopulationSize[i], fitness(key, PopulationSize[i]));
+            }
+            Console.WriteLine();
+        }
     }
     class Program
     {
@@ -111,17 +157,26 @@ namespace GA
 
             //人口數亂數產生
             GA ga = new GA(100, key);
-            ga.Roulette_Wheel();
+            Console.WriteLine("初始化:...");
+            ga.Print();
+            int times = 0;
+            //執行次數，突變率，交配率(?)
+            int RunTime = 100;
+            double PC = 0.4;
+            double PM = 0.9;
 
-            int RunTime = 50;
-
+            for (int i = 0; i < RunTime; i++) {
+                //Console.WriteLine("這是第 {0} 次 ", times);
+                ga.Roulette_Wheel();
+                ga.One_Point(PC);
+                ga.Translate();
+                //ga.Print();
+                times++;
+            }
+            ga.Print();
 
             //key值 解答
             Console.WriteLine("Key值是: {0}", key);
-       
-        
-            
-
             Console.Read();
         }
 
@@ -136,18 +191,6 @@ namespace GA
             }
             return str;
         }
-        static int fitness(String Key, String str)
-        {
-            int sum = 0;
-            for (int i = 0; i < str.Length; i++) {
-                if (Key[i] == str[i]) {
-                    sum++;
-                }
-            }
-            return sum;
-        } 
-
+        
     }
-
-
 }
