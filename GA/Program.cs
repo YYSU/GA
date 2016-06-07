@@ -8,29 +8,38 @@ using System.Collections;
 namespace GA
 {
     class GA {
-        public GA(int size,String Key) {
+        
+        // 亂數產生初始人口
+        public GA(int size, String Key) {
             this.key = Key;
             PopulationSize = new String[size];
             NewPopulation = new String[size];
-            randomPopulation(value, PopulationSize);
+            Fitness = new int[size];
+            NewFitness = new int[size];
+            randomPopulation(value, PopulationSize);      
         }
-        //金鑰
-        String key;
+        // 金鑰
+        String key , conserve;
         public Random value = new Random();
         public String[] PopulationSize;
+        public int[] Fitness; 
         public String[] NewPopulation;
-        //parent
-        String[] chromosome = new String[2];
+        public int[] NewFitness;
+        // parent chromosome
+        public String[] chromosome = new String[2];
         public String NewChromosome;
-        
+
         public void randomPopulation(Random value, String[] PopulationSize) {
             for (int i = 0; i < PopulationSize.Length; i++) {
-                //隨機產生值
-                PopulationSize[i] = fill(Convert.ToString(value.Next(0, 65536), 2)); 
+                // 隨機產生值
+                PopulationSize[i] = fill(Convert.ToString(value.Next(0, 65536), 2));
+            }
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                Fitness[i] = fitness(key, PopulationSize[i]);
             }
         }
 
-        //2進位要補滿的位置
+        // 2進位要補滿的位置
         static String fill(String str)
         {
             if (str.Length < 16) {
@@ -44,78 +53,176 @@ namespace GA
         static int fitness(String Key, String str)
         {
             int sum = 0;
-            for (int i = 0; i < str.Length; i++){
-                if (Key[i] == str[i]){
+            for (int i = 0; i < str.Length; i++) {
+                if (Key[i] == str[i]) {
                     sum++;
                 }
             }
             return sum;
         }
-        //競爭法,還沒寫
-        public void Tournament() {
-            Console.WriteLine("{0}   {1}", chromosome[0], chromosome[1]);
-        }
 
-        //輪盤法
-        public void Roulette_Wheel() {
-            //0 ~ 16
-            bool[] fitness_array = new bool[17];
-            int Total = 0;
-            ArrayList arraylist = new ArrayList();
-            //bool 陣列初值設成 False
-            for (int i = 0; i < fitness_array.Length; i++) {
-                fitness_array[i] = false;
-            }
-            //有出現過的fitness 就改成 true
-            for (int i = 0; i < PopulationSize.Length; i++) {
-                fitness_array[fitness(key, PopulationSize[i])] = true;
-            }
-            //把出現過的fitness 加入 arraylist
-            for (int i = 0; i < fitness_array.Length; i++) {
-                if (fitness_array[i] == true) {
-                    arraylist.Add(i);
-                    Total += i;
+        public static void bubbleSort(String[] PopulationSize, int[] list)
+        {
+            int n = list.Length;
+            int temp; String tempstr;
+            int Flag = 1; // 旗標
+            int i;
+            for (i = 1; i <= n - 1 && Flag == 1; i++)
+            {    // 外層迴圈控制比較回數
+                Flag = 0;
+                for (int j = 1; j <= n - i; j++)
+                {  // 內層迴圈控制每回比較次數            
+                    if (list[j] < list[j - 1])
+                    {  // 比較鄰近兩個物件，右邊比左邊小時就互換。	   
+
+                        temp = list[j];
+                        tempstr = PopulationSize[j];
+                        list[j] = list[j - 1];
+                        PopulationSize[j] = PopulationSize[j - 1];
+                        list[j - 1] = temp;
+                        PopulationSize[j - 1] = tempstr;
+                        Flag = 1;
+                    }
                 }
             }
-            int[] parent = {value.Next(0, Total + 1), value.Next(0, Total + 1)};
-            for(int i = 0; i < 2; i++) {
-                int wherefitness = 0;
-                for(int j = 0; j < arraylist.Count; j++) {
-                    wherefitness += (int)arraylist[j];
-                    if (parent[i] <= wherefitness) {
-                        parent[i] = (int)arraylist[j];
+        }
+
+        // 輪盤法
+        public void Roulette_Wheel() {
+            // 排序fitness
+            bubbleSort(PopulationSize, Fitness);
+
+            //開始進行天擇，分數越高的選到機率越高
+            bool[] arr = new bool[17];
+            for (int i = 0; i < 17; i++) {
+                arr[i] = false;
+            }
+
+            //把出現的Fitness記錄起來
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                if (i == 0) {
+                    for (int j = 0; j < 17; j++) {
+                        if (Fitness[i] == j) {
+                            arr[j] = true;
+                            continue;
+                        }
+                    }
+                } else {
+                    if (Fitness[i] != Fitness[i-1]) {
+                        for (int j = 0; j < 17; j++) {
+                            if (Fitness[i] == j) {
+                                arr[j] = true;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            //總數
+            ArrayList list = new ArrayList();
+            int total = 0;
+            for (int i = 0; i < 17; i++) {
+                if (arr[i] == true) {
+                    total += i;
+                    list.Add(i);
+                }
+            }
+
+            // 開始輪盤法進行天擇
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                // 隨便射一個
+                int shoot = value.Next(0, total + 1);
+
+                //判斷射到哪個
+                int WheelProb = (int)list[0];
+                int NextString = 0;
+                while (WheelProb < shoot)
+                {
+                    NextString++;
+                    WheelProb += (int)list[NextString];
+                }
+
+                //找該 Fitness 區間
+                int start = 0;
+                int end;
+                while (start <= PopulationSize.Length - 1)
+                {
+                    if (Fitness[start] < (int)list[NextString])
+                    {
+                        start++;
+                    }
+                    else
+                    {
                         break;
                     }
                 }
-            }
-            //Console.WriteLine("{0}   {1}", parent[0],parent[1]);
-            // 挑選parent
-            for (int i = 0; i < 2; i++) {
-                for (int j = 0; j < PopulationSize.Length; j++) {
-                    if (fitness(key, PopulationSize[j]) == parent[i]) {
-                        chromosome[i] = PopulationSize[j];
+                end = start;
+                while (end < PopulationSize.Length)
+                {
+                    if (Fitness[end] == (int)list[NextString])
+                    {
+                        end++;
+                    }
+                    else
+                    {
+                        end--;
+                        break;
                     }
                 }
+
+                conserve = PopulationSize[value.Next(start, end)];
+                NewPopulation[i] = conserve;       
             }
-            //Console.WriteLine("{0}   {1}", chromosome[0], chromosome[1]);
+
             
+            for (int i = 0; i < NewPopulation.Length; i++)
+            {
+                NewFitness[i] = fitness(key, NewPopulation[i]);
+               // Console.WriteLine("{0}: {1}", NewFitness[i], NewPopulation[i]);
+            }
+           // Console.WriteLine("--------------");
+
+            Translate();
+            bubbleSort(PopulationSize, Fitness);
         }
-        //交配法
+
+        // 交配
         public void One_Point(double PC) {
-            for (int i = 0; i < PopulationSize.Length; i++) {            
+            for (int i = 0; i < PopulationSize.Length; i++) { 
+                // 任取人口數中兩個
+                chromosome[0] = PopulationSize[value.Next(0, PopulationSize.Length)];
+                chromosome[1] = PopulationSize[value.Next(0, PopulationSize.Length)];
+                //chromosome[0] = Choice();
+                //chromosome[1] = Choice();
+
                 int random = value.Next(0, 16);
                 String front = chromosome[0].Substring(0, random);
                 String back = chromosome[1].Substring(random);
                 NewChromosome = front + back;
                 int Probability = value.Next(0, 1);
-                if (Probability < PC) {
-                    //突變
+                // 突變
+                if (Probability < PC) 
                     NewChromosome = Mutate(NewChromosome);
-                }
                 NewPopulation[i] = NewChromosome;
             }
+
+            
+            for (int i = 0; i < NewPopulation.Length; i++) {
+                NewFitness[i] = fitness(key, NewPopulation[i]);
+            }
+            
+            Translate();
+            bubbleSort(PopulationSize, Fitness);
+
+            int sum = 0;
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                sum += Fitness[i];
+            }
+            Console.WriteLine("平均: {0}", sum / PopulationSize.Length);
         }
-        //突變
+
+        // 突變
         public String Mutate(String Chromosome) {
             int random = value.Next(0, 16);
             if (Chromosome[random] == '0') {
@@ -130,17 +237,113 @@ namespace GA
             return Chromosome;
         }
 
-        //把新人口傳回PopulationSzie
+        // 把新人口傳回PopulationSzie
         public void Translate() {
             for (int i = 0; i < PopulationSize.Length; i++) {
                 PopulationSize[i] = NewPopulation[i];
+                Fitness[i] = NewFitness[i];
             }
         }
 
-        //印出 每個的字串 及 適合度 
+        public String Choice()
+        {
+            //開始進行天擇，分數越高的選到機率越高
+            bool[] arr = new bool[17];
+            for (int i = 0; i < 17; i++)
+            {
+                arr[i] = false;
+            }
+
+            //把出現的Fitness記錄起來
+            for (int i = 0; i < PopulationSize.Length; i++)
+            {
+                if (i == 0)
+                {
+                    for (int j = 0; j < 17; j++)
+                    {
+                        if (Fitness[i] == j)
+                        {
+                            arr[j] = true;
+                            continue;
+                        }
+                    }
+                }
+                else
+                {
+                    if (Fitness[i] != Fitness[i - 1])
+                    {
+                        for (int j = 0; j < 17; j++)
+                        {
+                            if (Fitness[i] == j)
+                            {
+                                arr[j] = true;
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+
+            //總數
+            ArrayList list = new ArrayList();
+            int total = 0;
+            for (int i = 0; i < 17; i++)
+            {
+                if (arr[i] == true)
+                {
+                    total += i;
+                    list.Add(i);
+                }
+            }
+
+
+            // 隨便射一個
+            int shoot = value.Next(0, total + 1);
+
+            //判斷射到哪個
+            int WheelProb = (int)list[0];
+            int NextString = 0;
+            while (WheelProb < shoot)
+            {
+                NextString++;
+                WheelProb += (int)list[NextString];
+            }
+
+            //找該 Fitness 區間
+            int start = 0;
+            int end;
+            while (start <= PopulationSize.Length - 1)
+            {
+                if (Fitness[start] < (int)list[NextString])
+                {
+                    start++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            end = start;
+            while (end < PopulationSize.Length)
+            {
+                if (Fitness[end] == (int)list[NextString])
+                {
+                    end++;
+                }
+                else
+                {
+                    end--;
+                    break;
+                }
+            }
+            conserve = PopulationSize[value.Next(start, end)];
+            return conserve;
+        }
+
+        // 印出 每個的字串 及 適合度 
         public void Print() {
             for (int i = 0; i < PopulationSize.Length; i++) {
-                Console.WriteLine("第{0}個 : {1}  , Fitness:{2}", i+1, PopulationSize[i], fitness(key, PopulationSize[i]));
+                Console.WriteLine("第{0}個 : {1}  , Fitness:{2},{3}", i+1, PopulationSize[i], Fitness[i], fitness(key, PopulationSize[i]));
             }
             Console.WriteLine();
         }
@@ -153,34 +356,31 @@ namespace GA
             Random Value = new Random();
             int KeyValue = Value.Next(0, 65536);
             String key = fill(Convert.ToString(KeyValue, 2));
-            
-
-            //人口數亂數產生
-            GA ga = new GA(100, key);
-            Console.WriteLine("初始化:...");
-            ga.Print();
             int times = 0;
-            //執行次數，突變率，交配率(?)
-            int RunTime = 100;
-            double PC = 0.4;
-            double PM = 0.9;
 
+            // 人口數
+            GA ga = new GA(100, key);
+            
+            
+            // 執行次數，突變率
+            int RunTime = 40;
+            double PC = 0.3;
+        
             for (int i = 0; i < RunTime; i++) {
-                //Console.WriteLine("這是第 {0} 次 ", times);
+                Console.WriteLine("這是第 {0} 次 ", times+1);
                 ga.Roulette_Wheel();
                 ga.One_Point(PC);
-                ga.Translate();
-                //ga.Print();
+                ga.Print();
                 times++;
-            }
+            }  
             ga.Print();
 
-            //key值 解答
+            // key值 解答
             Console.WriteLine("Key值是: {0}", key);
             Console.Read();
         }
 
-        //2進位要補滿的位置
+        // 2進位要補滿的位置
         static String fill(String str)
         {
             if (str.Length < 16) {
@@ -191,6 +391,5 @@ namespace GA
             }
             return str;
         }
-        
     }
 }
