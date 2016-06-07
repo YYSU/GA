@@ -188,23 +188,36 @@ namespace GA
         }
 
         // 交配
-        public void One_Point(double PC) {
-            for (int i = 0; i < PopulationSize.Length; i++) { 
+        public void One_Point(double PC, double MR) {
+            double MutateRate;
+            for (int i = 0; i < PopulationSize.Length; i++) {
+                MutateRate = value.Next(0, 1);
                 // 任取人口數中兩個
                 chromosome[0] = PopulationSize[value.Next(0, PopulationSize.Length)];
                 chromosome[1] = PopulationSize[value.Next(0, PopulationSize.Length)];
                 //chromosome[0] = Choice();
                 //chromosome[1] = Choice();
 
-                int random = value.Next(0, 16);
-                String front = chromosome[0].Substring(0, random);
-                String back = chromosome[1].Substring(random);
-                NewChromosome = front + back;
-                int Probability = value.Next(0, 1);
-                // 突變
-                if (Probability < PC) 
-                    NewChromosome = Mutate(NewChromosome);
-                NewPopulation[i] = NewChromosome;
+                if (MutateRate < MR)
+                {
+                    int random = value.Next(0, 16);
+                    String front = chromosome[0].Substring(0, random);
+                    String back = chromosome[1].Substring(random);
+                    NewChromosome = front + back;
+                    int Probability = value.Next(0, 1);
+                    // 突變
+                    if (Probability < PC)
+                        NewChromosome = Mutate(NewChromosome);
+                    NewPopulation[i] = NewChromosome;
+                }
+                else {
+                    NewChromosome = fitness(key, chromosome[0]) > fitness(key, chromosome[1]) ? chromosome[0] : chromosome[1];
+                    int Probability = value.Next(0, 1);
+                    // 突變
+                    if (Probability < PC)
+                        NewChromosome = Mutate(NewChromosome);
+                    NewPopulation[i] = NewChromosome;
+                }
             }
 
             
@@ -361,15 +374,15 @@ namespace GA
             // 人口數
             GA ga = new GA(100, key);
             
-            
-            // 執行次數，突變率
+            // 執行次數，突變率,  交配率
             int RunTime = 40;
             double PC = 0.3;
+            double MR = 0.9;
         
             for (int i = 0; i < RunTime; i++) {
                 Console.WriteLine("這是第 {0} 次 ", times+1);
                 ga.Roulette_Wheel();
-                ga.One_Point(PC);
+                ga.One_Point(PC,MR);
                 ga.Print();
                 times++;
             }  
