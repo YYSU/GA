@@ -230,6 +230,62 @@ namespace GA
             bubbleSort(PopulationSize, Fitness);
         }
 
+
+        // 多點交配
+        public void Multi_Points(double PC, double MR)
+        {
+            double MutateRate;
+            StringBuilder str = new StringBuilder();
+            for (int i = 0; i < PopulationSize.Length; i++)
+            {
+                MutateRate = value.Next(0, 1);
+                // 任取人口數中兩個
+                chromosome[0] = PopulationSize[value.Next(0, PopulationSize.Length)];
+                chromosome[1] = PopulationSize[value.Next(0, PopulationSize.Length)];
+                //chromosome[0] = Choice();
+                //chromosome[1] = Choice();
+
+
+                if (MutateRate < MR)
+                {
+                    int first = value.Next(0, 16);
+                    int second = value.Next(0, 16);
+                    int max = first > second ? first : second;
+                    int min = first <= second ? first : second;
+                    str.Append(chromosome[0].Substring(0, min));
+                    str.Append(chromosome[1].Substring(min, max-min));
+                    str.Append(chromosome[0].Substring(max));
+                    NewChromosome = str.ToString();
+
+                    str.Clear();
+                    int Probability = value.Next(0, 1);
+                    // 突變
+                    if (Probability < PC)
+                        NewChromosome = Mutate(NewChromosome);
+                    NewPopulation[i] = NewChromosome;
+                }
+                else
+                {
+                    NewChromosome = fitness(key, chromosome[0]) > fitness(key, chromosome[1]) ? chromosome[0] : chromosome[1];
+                    int Probability = value.Next(0, 1);
+                    // 突變
+                    if (Probability < PC)
+                        NewChromosome = Mutate(NewChromosome);
+                    NewPopulation[i] = NewChromosome;
+                }
+            }
+
+
+            for (int i = 0; i < NewPopulation.Length; i++)
+            {
+                NewFitness[i] = fitness(key, NewPopulation[i]);
+            }
+
+            Translate();
+            bubbleSort(PopulationSize, Fitness);
+        }
+
+
         // 算數交配
         public void Arithmetic(double PC, double MR)
         {
@@ -458,7 +514,7 @@ namespace GA
             for (int i = 0; i < RunTime; i++) {
                 Console.WriteLine("這是第 {0} 次 ", times+1);
                 ga.Roulette_Wheel();
-                ga.One_Point(PC,MR);
+                ga.Multi_Points(PC,MR);
                 ga.Print();
                 times++;
             }  
