@@ -187,6 +187,42 @@ namespace GA
             bubbleSort(PopulationSize, Fitness);
         }
 
+        //競賽法
+        public void Tournament_selection()
+        {
+            int new1, new2;
+
+            // 開始比賽
+            for (int i = 0; i < PopulationSize.Length; i++)
+            {
+                new1 = value.Next(0, PopulationSize.Length);
+                new2 = value.Next(0, PopulationSize.Length);
+                while (Fitness[new1] == Fitness[new2]) { 
+                    //任挑人口中兩個基因
+                    new1 = value.Next(0, PopulationSize.Length);
+                    new2 = value.Next(0, PopulationSize.Length);
+                }
+
+                //比賽哪一個基因比較好
+                if (Fitness[new1] > Fitness[new2]) {
+                    NewPopulation[i] = PopulationSize[new1];
+                }
+                else
+                {
+                    NewPopulation[i] = PopulationSize[new2];
+                }
+            }
+
+
+            for (int i = 0; i < NewPopulation.Length; i++)
+            {
+                NewFitness[i] = fitness(key, NewPopulation[i]);
+            }
+
+            Translate();
+            bubbleSort(PopulationSize, Fitness);
+        }
+
         // 單點交配
         public void One_Point(double PC, double MR) {
             double MutateRate;
@@ -471,7 +507,7 @@ namespace GA
         // 印出 每個的字串 及 適合度 
         public void Print() {
             for (int i = 0; i < PopulationSize.Length; i++) {
-                Console.WriteLine("第{0}個 : {1}  , Fitness:{2},{3}", i+1, PopulationSize[i], Fitness[i], fitness(key, PopulationSize[i]));
+                Console.WriteLine("第{0}個 : {1}  , Fitness:{2}", i+1, PopulationSize[i], Fitness[i]);
             }
 
             int sum = 0;
@@ -513,12 +549,12 @@ namespace GA
         
             for (int i = 0; i < RunTime; i++) {
                 Console.WriteLine("這是第 {0} 次 ", times+1);
-                ga.Roulette_Wheel();
+                ga.Tournament_selection();
                 ga.Multi_Points(PC,MR);
                 ga.Print();
                 times++;
             }  
-            ga.Print();
+
 
             // key值 解答
             Console.WriteLine("Key值是: {0}", key);
